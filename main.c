@@ -6,6 +6,7 @@
 #define max 50
 #define max_char 50
 int idglobal_usuarios = 1000;
+int idglobal_plataformas = 5000;
 
 void limpar_terminal() {
 #ifdef _WIN32
@@ -84,7 +85,7 @@ int realizar_exclusao(){
   return a;
 }
 
-//structs
+//struct de datas
 typedef struct {
   int dia;
   int mes;
@@ -92,6 +93,7 @@ typedef struct {
 
 }DATAS;
 
+//principais structs
 typedef struct {
   char nome[max];
   char cpf[15]; //campo unico da struct; 15 contandos hifens e pontos
@@ -312,6 +314,7 @@ void cadastrar_plataforma(){
   printf("\nPlataforma cadastrada com sucesso!\n");
   getchar();
   limpar_terminal();
+  total_plataformas++;
 
 }
 
@@ -363,6 +366,48 @@ void consultar_usuario(){
     
     printf("Usuario nao encontrado!\n\n");
     getchar();
+  }
+
+  getchar();
+}
+
+void consultar_plataforma(){
+
+  char consulta_nome[max_char];
+
+  printf("Digite o nome da plataforma que sera consultada:\n\n");
+  getchar();
+  fgets(consulta_nome, max_char, stdin);
+
+  // remover '\n' da consulta
+  for(int i = 0; i < max_char; i++){
+    if(consulta_nome[i] == '\n'){
+      consulta_nome[i] = '\0';
+      break;
+    }
+  }
+
+  int encontrado = 0;
+
+  for(int i = 0; i < total_plataformas; i++){
+    if(strcmp(plataformas[i].nome_plataforma, consulta_nome) == 0){
+
+      limpar_terminal();
+      printf("Plataforma encontrada!\n\n");
+      printf("Nome: %s\n", plataformas[i].nome_plataforma);
+      printf("ID: %d\n", plataformas[i].id_plataforma);
+      printf("Categoria: %s\n", plataformas[i].categoria);
+      printf("Valor: R$ %.2f\n", plataformas[i].preco);
+      printf("Site: %s\n", plataformas[i].site_url);
+
+      encontrado = 1;
+      break;
+    }
+  }
+
+  if(encontrado == 0){
+    limpar_terminal();
+    printf("Plataforma nao encontrada!\n\n");
   }
 
   getchar();
@@ -549,6 +594,163 @@ void alterar_usuario(){
   }
 }
 
+void alterar_plataforma(){
+
+  char procurar_nome[max_char];
+
+  printf("Digite o nome da plataforma a qual os dados serao alterados: \n\n");
+  getchar();
+  fgets(procurar_nome, max_char, stdin);
+  
+  //pra remover a quebra de linha
+  for(int i = 0; i < max_char; i++){
+    if(procurar_nome[i] == '\n'){
+    procurar_nome[i] = '\0';
+    break;
+    }
+  }
+
+  int opcao_de_alteracao;
+  int plataforma = 0;
+  int encontrado = 1;
+  for(int i = 0; i < total_plataformas; i++){
+    encontrado = strcmp(plataformas[i].nome_plataforma, procurar_nome);
+    if(encontrado == 0){
+
+      while(1){
+        plataforma = i;
+        limpar_terminal();
+        printf("Qual dado da plataforma sera alterado?\n");
+        printf("Escolha uma das opcoes abaixo:\n\n");
+        printf("1 - Nome: %s\n", plataformas[i].nome_plataforma);
+        printf("2 - Categoria: %s\n", plataformas[i].categoria);
+        printf("3 - Valor: %.2f\n", plataformas[i].preco);
+        printf("4 - Site: %s\n", plataformas[i].site_url);
+        printf("5 - Voltar\n\n");
+
+        scanf("%d", &opcao_de_alteracao);
+
+        while(opcao_de_alteracao < 1 || opcao_de_alteracao > 5){
+          limpar_terminal();
+          printf("Qual dado da plataforma sera alterado?\n");
+          printf("Escolha uma das opcoes abaixo:\n");
+          printf("Por favor escolha uma opcao valida!\n\n");
+          printf("1 - Nome: %s\n", plataformas[i].nome_plataforma);
+          printf("2 - Categoria: %s\n", plataformas[i].nome_plataforma);
+          printf("3 - Valor: %f\n", plataformas[i].preco);
+          printf("4 - Site: %s\n", plataformas[i].site_url);
+          printf("5 - Voltar\n\n");
+
+          scanf("%d", &opcao_de_alteracao);
+        }
+
+        //alterar nome
+        if(opcao_de_alteracao == 1){
+          limpar_terminal();
+          printf("Digite o novo nome da plataforma:\n\n");
+          getchar();
+          fgets(plataformas[plataforma].nome_plataforma, max_char, stdin);
+
+          //removedor de \n
+          for(int i = 0; i < max_char; i++){
+            if(plataformas[plataforma].nome_plataforma[i] == '\n'){
+              plataformas[plataforma].nome_plataforma[i] = '\0';
+            }
+          }
+
+          limpar_terminal();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar categoria
+        if(opcao_de_alteracao == 2){
+          limpar_terminal();
+          printf("Digite a nova categoria da plataforma:\n\n");
+          getchar();
+          fgets(plataformas[plataforma].categoria, max_char, stdin);
+
+          //removedor de \n
+          for(int i = 0; i < max_char; i++){
+            if(plataformas[plataforma].categoria[i] == '\n'){
+              plataformas[plataforma].categoria[i] = '\0';
+            }
+          }
+
+          limpar_terminal();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar valor
+        if(opcao_de_alteracao == 3){
+          limpar_terminal();
+          printf("Digite o novo valor da plataforma:\n\n");
+          scanf("%f", &plataformas[plataforma].preco);
+
+          limpar_terminal();
+          getchar();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar email
+        if(opcao_de_alteracao == 4){
+          limpar_terminal();
+          printf("Digite o novo site da plataforma:\n\n");
+          getchar();
+          fgets(plataformas[plataforma].site_url, max_char, stdin);
+
+          int ponto = 0;
+          for(int i = 0; plataformas[plataforma].site_url[i] != '\0'; i++){
+            if(plataformas[plataforma].site_url[i] == '.'){
+              ponto = 1;
+            }
+          }
+
+          //removedor de \n
+          for(int i = 0; i < max_char; i++){
+            if(plataformas[plataforma].site_url[i] == '\n'){
+              plataformas[plataforma].site_url[i] = '\0';
+            }
+          }
+          
+          while(ponto != 1){
+            limpar_terminal();
+            printf("Por favor, insira uma Url valida!\n");
+            printf("Digite o novo site da plataforma:\n\n");
+            fgets(plataformas[plataforma].site_url, max_char, stdin);
+
+            //removedor de \n
+            for(int i = 0; i < max_char; i++){
+              if(plataformas[plataforma].site_url[i] == '\n'){
+                plataformas[plataforma].site_url[i] = '\0';
+              }
+            }
+
+            for(int i = 0; plataformas[plataforma].site_url[i] != '\0'; i++){
+            if(plataformas[plataforma].site_url[i] == '.'){
+              ponto = 1;
+            }
+            }
+          }
+
+        limpar_terminal();
+        printf("Alteracao realizada com sucesso!\n");
+      }
+
+        if(opcao_de_alteracao == 5){
+          break;
+        }
+      }
+  
+    }else{
+      limpar_terminal();
+      printf("Plataforma nao encontrado!\n\n");
+    }
+  }
+}
+
 //funcoes de exclusao
 void excluir_usuario(){
 
@@ -589,6 +791,41 @@ void excluir_usuario(){
   if(encontrado == 0){
     limpar_terminal();
     printf("Usuario nao encontrado!\n");
+    getchar();
+  }
+}
+
+void excluir_plataforma(){
+
+  char nome_exclusao[max_char];
+
+  printf("Digite o nome da plataforma que sera excluida:\n\n");
+  getchar();
+  fgets(nome_exclusao, 15, stdin);
+
+  int encontrado = 0;
+
+  for(int i = 0; i < total_plataformas; i++){
+    if(strcmp(plataformas[i].nome_plataforma, nome_exclusao) == 0){
+
+      // desloca na frente do excluido para tras
+      for(int j = i; j < total_plataformas - 1; j++){
+        plataformas[j] = plataformas[j + 1];
+      }
+
+      total_plataformas--;
+      encontrado = 1;
+
+      limpar_terminal();
+      printf("Plataforma excluida com sucesso!\n");
+      getchar();
+      break;
+    }
+  }
+
+  if(encontrado == 0){
+    limpar_terminal();
+    printf("Plataforma nao encontrado!\n");
     getchar();
   }
 }
@@ -648,6 +885,11 @@ int main(){
           getchar();
           limpar_terminal();
           input = 2;
+        }else if(input == 2){
+          limpar_terminal();
+          consultar_plataforma();
+          limpar_terminal();
+          input = 2;
         }
 
         //forcando o usuario a escolher uma opcao valida
@@ -670,6 +912,12 @@ int main(){
           getchar();
           limpar_terminal();
           input = 3;
+        }else if(input == 2){
+          limpar_terminal();
+          alterar_plataforma();
+          getchar();
+          limpar_terminal();
+          input = 3;
         }
 
         //forcando o usuario a escolher uma opcao valida
@@ -682,7 +930,7 @@ int main(){
         if(input == 4){
           break;
         }
-      
+
       }else if(input == 4){
         limpar_terminal();
         input = realizar_exclusao();
@@ -690,7 +938,10 @@ int main(){
           limpar_terminal();
           excluir_usuario();
           input = 4;
-
+        }else if(input == 2){
+          limpar_terminal();
+          excluir_plataforma();
+          input = 4;
         }
 
         //forcando o usuario a escolher uma opcao valida
