@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
 #define max 50
 #define max_char 50
-int idglobal_usuarios = 1000;
+long int idglobal_usuarios = 1000;
+long int idglobal_plataformas = 5000;
 
 void limpar_terminal() {
 #ifdef _WIN32
@@ -83,7 +85,7 @@ int realizar_exclusao(){
   return a;
 }
 
-//structs
+//struct de datas
 typedef struct {
   int dia;
   int mes;
@@ -91,10 +93,11 @@ typedef struct {
 
 }DATAS;
 
+//principais structs
 typedef struct {
   char nome[max];
-  char cpf[15]; //contandos hifens e pontos
-  int id_usuario; //campo unico da struct
+  char cpf[15]; //campo unico da struct; 15 contandos hifens e pontos
+  long int id_usuario; 
   char phone[14]; //contando parenteses e hifens
   char email[max];
 
@@ -102,7 +105,7 @@ typedef struct {
 
 typedef struct {
   char nome_plataforma[max]; //campo unico da struct
-  int id_plataforma;
+  long int id_plataforma;
   char categoria[max];
   float preco;
   char site_url[max];
@@ -197,12 +200,19 @@ void cadastrar_usuario(){
     getchar();
     fgets(usuarios[total_usuarios].email, max_char, stdin);
 
+    //removedor de \n
+    for(int i = 0; i < max_char; i++){
+      if(usuarios[total_usuarios].email[i] == '\n'){
+        usuarios[total_usuarios].email[i] = '\0';
+      }
+    }
+
     oi = 0;
 
     for(int i = 0; usuarios[total_usuarios].email[i] != '\0'; i++){
         if(usuarios[total_usuarios].email[i] == '@'){
-            oi = 1;
-            break;
+          oi = 1;
+          break;
         }
     }
 
@@ -215,6 +225,9 @@ void cadastrar_usuario(){
       printf("Por favor, insira um Email valido!\n");
     }
   }
+
+  usuarios[total_usuarios].id_usuario = idglobal_usuarios + 1;
+  idglobal_usuarios++;
 
   //esse getchar eh pra forcar quem esta usando a apertar qualquer tecla pra continuar, mas a gente pode mudar isso depois
   limpar_terminal();
@@ -305,6 +318,10 @@ void cadastrar_plataforma(){
   getchar();
   limpar_terminal();
 
+  idglobal_plataformas++;
+  plataformas[total_plataformas].id_plataforma = idglobal_plataformas;
+  total_plataformas++;
+
 }
 
 //funcoes de consulta
@@ -312,18 +329,15 @@ void consultar_usuario(){
 
   char consulta_cpf[15];
 
-  printf("Digite o CPF do usuario o qual os dados serao consultados: ");
+  printf("Digite o CPF do usuario o qual os dados serao consultados:\n\n");
   getchar();
   fgets(consulta_cpf, 15, stdin);
-
-  
-  consulta_cpf[strcspn(consulta_cpf, "\n")] = '\0';
 
   while(consulta_cpf[3] != '.' || consulta_cpf[7] != '.' || consulta_cpf[11] != '-'){
 
     limpar_terminal();
     printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
-    printf("Digite o CPF do usuario o qual os dados serao consultados: ");
+    printf("Digite o CPF do usuario o qual os dados serao consultados: \n\n");
 
     fgets(consulta_cpf, 15, stdin);
     
@@ -344,7 +358,7 @@ void consultar_usuario(){
       printf("Usuario encontrado!\n\n");
       printf("Nome: %s\n", usuarios[i].nome);
       printf("CPF: %s\n", usuarios[i].cpf);
-      printf("Id do usuario: %d\n", usuarios[i].id_usuario);
+      printf("Id da usuario: %ld\n", usuarios[i].id_usuario);
       printf("Telefone: %s\n", usuarios[i].phone);
       printf("Email: %s\n", usuarios[i].email);
 
@@ -355,14 +369,475 @@ void consultar_usuario(){
 
   if(encontrado == 0){
     limpar_terminal();
+    
     printf("Usuario nao encontrado!\n\n");
+    getchar();
   }
 
   getchar();
 }
 
+void consultar_plataforma(){
 
-int main() {
+  char consulta_nome[max_char];
+
+  printf("Digite o nome da plataforma que sera consultada:\n\n");
+  getchar();
+  fgets(consulta_nome, max_char, stdin);
+
+  // remover '\n' da consulta
+  for(int i = 0; i < max_char; i++){
+    if(consulta_nome[i] == '\n'){
+      consulta_nome[i] = '\0';
+      break;
+    }
+  }
+
+  int encontrado = 0;
+
+  for(int i = 0; i < total_plataformas; i++){
+    if(strcmp(plataformas[i].nome_plataforma, consulta_nome) == 0){
+
+      limpar_terminal();
+      printf("Plataforma encontrada!\n\n");
+      printf("Nome: %s\n", plataformas[i].nome_plataforma);
+      printf("ID da plataforma: %ld\n", plataformas[i].id_plataforma);
+      printf("Categoria: %s\n", plataformas[i].categoria);
+      printf("Valor: R$ %.2f\n", plataformas[i].preco);
+      printf("Site: %s\n", plataformas[i].site_url);
+
+      encontrado = 1;
+      break;
+    }
+  }
+
+  if(encontrado == 0){
+    limpar_terminal();
+    printf("Plataforma nao encontrada!\n\n");
+  }
+
+  getchar();
+}
+
+//funcoes de alteracao
+void alterar_usuario(){
+
+  char procurar_cpf[15];
+
+  printf("Digite o CPF do usuario o qual os dados serao alterados: \n\n");
+  getchar();
+  fgets(procurar_cpf, 15, stdin);
+
+  while(procurar_cpf[3] != '.' || procurar_cpf[7] != '.' || procurar_cpf[11] != '-'){
+
+    limpar_terminal();
+    printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
+    printf("Digite o CPF do usuario o qual os dados serao alterados: \n\n");
+
+    fgets(procurar_cpf, 15, stdin);
+    
+    //pra remover a quebra de linha
+    for(int i = 0; i < 15; i++){
+      if(procurar_cpf[i] == '\n'){
+      procurar_cpf[i] = '\0';
+      break;
+      }
+    }
+  }
+
+  /*esse inteiro "usuario" serve como um localizador do usuario apos ele ser encontrado,
+  acredito que seria possivel utilizar ponteiros, mas ainda nao estou confiante pra isso*/
+  int opcao_de_alteracao;
+  int usuario = 0;
+  int encontrado = 1;
+  for(int i = 0; i < total_usuarios; i++){
+    encontrado = strcmp(usuarios[i].cpf, procurar_cpf);
+    if(encontrado == 0){
+
+      while(1){
+        usuario = i;
+        limpar_terminal();
+        printf("Qual dado do usuario sera alterado?\n");
+        printf("Escolha uma das opcoes abaixo:\n\n");
+        printf("1 - Nome: %s\n", usuarios[i].nome);
+        printf("2 - CPF: %s\n", usuarios[i].cpf);
+        printf("3 - Telefone: %s\n", usuarios[i].phone);
+        printf("4 - Email: %s\n", usuarios[i].email);
+        printf("5 - Voltar\n\n");
+
+        scanf("%d", &opcao_de_alteracao);
+
+        while(opcao_de_alteracao < 1 || opcao_de_alteracao > 5){
+          limpar_terminal();
+          printf("Qual dado do usuario sera alterado?\n");
+          printf("Escolha uma das opcoes abaixo:\n");
+          printf("Por favor escolha uma opcao valida!\n\n");
+          printf("1 - Nome: %s\n", usuarios[i].nome);
+          printf("2 - CPF: %s\n", usuarios[i].cpf);
+          printf("3 - Telefone: %s\n", usuarios[i].phone);
+          printf("4 - Email: %s\n", usuarios[i].email);
+          printf("5 - Voltar\n\n");
+
+          scanf("%d", &opcao_de_alteracao);
+        }
+
+        //alterar nome
+        if(opcao_de_alteracao == 1){
+          limpar_terminal();
+          printf("Digite o novo nome do usuario:\n\n");
+          getchar();
+          fgets(usuarios[usuario].nome, max_char, stdin);
+
+          //removedor de \n
+          for(int i = 0; i < max_char; i++){
+            if(usuarios[usuario].nome[i] == '\n'){
+              usuarios[usuario].nome[i] = '\0';
+            }
+          }
+
+          limpar_terminal();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar cpf
+        if(opcao_de_alteracao == 2){
+          limpar_terminal();
+          printf("Digite o novo CPF do usuario:\n\n");
+          getchar();
+          fgets(usuarios[usuario].cpf, 15, stdin);
+        
+          while(usuarios[usuario].cpf[3]  != '.' || usuarios[usuario].cpf[7]  != '.' || usuarios[usuario].cpf[11] != '-'){
+
+          limpar_terminal();
+          printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
+          printf("Digite o novo CPF do usuario:\n\n");
+          fgets(usuarios[usuario].cpf, 15, stdin);
+          }
+
+          limpar_terminal();
+          getchar();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar telefone
+        if(opcao_de_alteracao == 3){
+          limpar_terminal();
+          printf("Digite o novo telefone do usuario:\n\n");
+          getchar();
+          fgets(usuarios[usuario].phone, 14, stdin);
+
+          while(usuarios[usuario].phone[0] != '(' || usuarios[usuario].phone[3] != ')' || usuarios[usuario].phone[8] != '-'){
+
+          limpar_terminal();
+          printf("Por favor, insira o TELEFONE no formato correto! (00)0000-0000\n");
+          printf("Digite o novo telefone do usuario:\n\n");
+          fgets(usuarios[usuario].phone, 14, stdin);
+
+          }
+
+          limpar_terminal();
+          getchar();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar email
+        if(opcao_de_alteracao == 4){
+          limpar_terminal();
+          printf("Digite o novo email do usuario:\n\n");
+          getchar();
+          fgets(usuarios[usuario].email, max_char, stdin);
+
+          int a = 0;
+          for(int i = 0; usuarios[usuario].email[i] != '\0'; i++){
+            if(usuarios[usuario].email[i] == '@'){
+              a = 1;
+            }
+          }
+
+          //removedor de \n
+          for(int i = 0; i < max_char; i++){
+            if(usuarios[usuario].email[i] == '\n'){
+              usuarios[usuario].email[i] = '\0';
+            }
+          }
+          
+          while(a != 1){
+            limpar_terminal();
+            printf("Por favor, insira um Email valido!\n");
+            printf("Digite o novo email do usuario:\n\n");
+            fgets(usuarios[usuario].email, max_char, stdin);
+
+            //removedor de \n
+            for(int i = 0; i < max_char; i++){
+              if(usuarios[usuario].email[i] == '\n'){
+                usuarios[usuario].email[i] = '\0';
+              }
+            }
+
+            for(int i = 0; usuarios[usuario].email[i] != '\0'; i++){
+            if(usuarios[usuario].email[i] == '@'){
+              a = 1;
+            }
+            }
+          }
+
+        limpar_terminal();
+        printf("Alteracao realizada com sucesso!\n");
+      }
+
+        if(opcao_de_alteracao == 5){
+          break;
+        }
+      }
+  
+    }else{
+      limpar_terminal();
+      printf("Usuario nao encontrado!\n\n");
+    }
+  }
+}
+
+void alterar_plataforma(){
+
+  char procurar_nome[max_char];
+
+  printf("Digite o nome da plataforma a qual os dados serao alterados: \n\n");
+  getchar();
+  fgets(procurar_nome, max_char, stdin);
+  
+  //pra remover a quebra de linha
+  for(int i = 0; i < max_char; i++){
+    if(procurar_nome[i] == '\n'){
+    procurar_nome[i] = '\0';
+    break;
+    }
+  }
+
+  int opcao_de_alteracao;
+  int plataforma = 0;
+  int encontrado = 1;
+  for(int i = 0; i < total_plataformas; i++){
+    encontrado = strcmp(plataformas[i].nome_plataforma, procurar_nome);
+    if(encontrado == 0){
+
+      while(1){
+        plataforma = i;
+        limpar_terminal();
+        printf("Qual dado da plataforma sera alterado?\n");
+        printf("Escolha uma das opcoes abaixo:\n\n");
+        printf("1 - Nome: %s\n", plataformas[i].nome_plataforma);
+        printf("2 - Categoria: %s\n", plataformas[i].categoria);
+        printf("3 - Valor: R$ %.2f\n", plataformas[i].preco);
+        printf("4 - Site: %s\n", plataformas[i].site_url);
+        printf("5 - Voltar\n\n");
+
+        scanf("%d", &opcao_de_alteracao);
+
+        while(opcao_de_alteracao < 1 || opcao_de_alteracao > 5){
+          limpar_terminal();
+          printf("Qual dado da plataforma sera alterado?\n");
+          printf("Escolha uma das opcoes abaixo:\n");
+          printf("Por favor escolha uma opcao valida!\n\n");
+          printf("1 - Nome: %s\n", plataformas[i].nome_plataforma);
+          printf("2 - Categoria: %s\n", plataformas[i].nome_plataforma);
+          printf("3 - Valor: R$ %.2f\n", plataformas[i].preco);
+          printf("4 - Site: %s\n", plataformas[i].site_url);
+          printf("5 - Voltar\n\n");
+
+          scanf("%d", &opcao_de_alteracao);
+        }
+
+        //alterar nome
+        if(opcao_de_alteracao == 1){
+          limpar_terminal();
+          printf("Digite o novo nome da plataforma:\n\n");
+          getchar();
+          fgets(plataformas[plataforma].nome_plataforma, max_char, stdin);
+
+          //removedor de \n
+          for(int i = 0; i < max_char; i++){
+            if(plataformas[plataforma].nome_plataforma[i] == '\n'){
+              plataformas[plataforma].nome_plataforma[i] = '\0';
+            }
+          }
+
+          limpar_terminal();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar categoria
+        if(opcao_de_alteracao == 2){
+          limpar_terminal();
+          printf("Digite a nova categoria da plataforma:\n\n");
+          getchar();
+          fgets(plataformas[plataforma].categoria, max_char, stdin);
+
+          //removedor de \n
+          for(int i = 0; i < max_char; i++){
+            if(plataformas[plataforma].categoria[i] == '\n'){
+              plataformas[plataforma].categoria[i] = '\0';
+            }
+          }
+
+          limpar_terminal();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar valor
+        if(opcao_de_alteracao == 3){
+          limpar_terminal();
+          printf("Digite o novo valor da plataforma:\n\n");
+          printf("R$");
+          scanf("%f", &plataformas[plataforma].preco);
+
+          limpar_terminal();
+          getchar();
+          printf("Alteracao realizada com sucesso!\n");
+          getchar();
+        }
+
+        //alterar email
+        if(opcao_de_alteracao == 4){
+          limpar_terminal();
+          printf("Digite o novo site da plataforma:\n\n");
+          getchar();
+          fgets(plataformas[plataforma].site_url, max_char, stdin);
+
+          int ponto = 0;
+          for(int i = 0; plataformas[plataforma].site_url[i] != '\0'; i++){
+            if(plataformas[plataforma].site_url[i] == '.'){
+              ponto = 1;
+            }
+          }
+
+          //removedor de \n
+          for(int i = 0; i < max_char; i++){
+            if(plataformas[plataforma].site_url[i] == '\n'){
+              plataformas[plataforma].site_url[i] = '\0';
+            }
+          }
+          
+          while(ponto != 1){
+            limpar_terminal();
+            printf("Por favor, insira uma Url valida!\n");
+            printf("Digite o novo site da plataforma:\n\n");
+            fgets(plataformas[plataforma].site_url, max_char, stdin);
+
+            //removedor de \n
+            for(int i = 0; i < max_char; i++){
+              if(plataformas[plataforma].site_url[i] == '\n'){
+                plataformas[plataforma].site_url[i] = '\0';
+              }
+            }
+
+            for(int i = 0; plataformas[plataforma].site_url[i] != '\0'; i++){
+            if(plataformas[plataforma].site_url[i] == '.'){
+              ponto = 1;
+            }
+            }
+          }
+
+        limpar_terminal();
+        printf("Alteracao realizada com sucesso!\n");
+      }
+
+        if(opcao_de_alteracao == 5){
+          break;
+        }
+      }
+  
+    }else{
+      limpar_terminal();
+      printf("Plataforma nao encontrada!\n\n");
+    }
+  }
+}
+
+//funcoes de exclusao
+void excluir_usuario(){
+
+  char cpf_exclusao[15];
+
+  printf("Digite o CPF do usuario que sera excluido:\n\n");
+  getchar();
+  fgets(cpf_exclusao, 15, stdin);
+
+  while(cpf_exclusao[3] != '.' || cpf_exclusao[7] != '.' || cpf_exclusao[11] != '-'){
+
+    limpar_terminal();
+    printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
+    printf("Digite o CPF do usuario que sera excluido:\n\n");
+    fgets(cpf_exclusao, 15, stdin);
+  }
+
+  int encontrado = 0;
+
+  for(int i = 0; i < total_usuarios; i++){
+    if(strcmp(usuarios[i].cpf, cpf_exclusao) == 0){
+
+      // desloca na frente do excluido para tras
+      for(int j = i; j < total_usuarios - 1; j++){
+        usuarios[j] = usuarios[j + 1];
+      }
+
+      total_usuarios--;
+      encontrado = 1;
+
+      limpar_terminal();
+      printf("Usuario excluido com sucesso!\n");
+      getchar();
+      break;
+    }
+  }
+
+  if(encontrado == 0){
+    limpar_terminal();
+    printf("Usuario nao encontrado!\n");
+    getchar();
+  }
+}
+
+void excluir_plataforma(){
+
+  char nome_exclusao[max_char];
+
+  printf("Digite o nome da plataforma que sera excluida:\n\n");
+  getchar();
+  fgets(nome_exclusao, 15, stdin);
+
+  int encontrado = 0;
+
+  for(int i = 0; i < total_plataformas; i++){
+    if(strcmp(plataformas[i].nome_plataforma, nome_exclusao) == 0){
+
+      // desloca na frente do excluido para tras
+      for(int j = i; j < total_plataformas - 1; j++){
+        plataformas[j] = plataformas[j + 1];
+      }
+
+      total_plataformas--;
+      encontrado = 1;
+
+      limpar_terminal();
+      printf("Plataforma excluida com sucesso!\n");
+      getchar();
+      break;
+    }
+  }
+
+  if(encontrado == 0){
+    limpar_terminal();
+    printf("Plataforma nao encontrado!\n");
+    getchar();
+  }
+}
+
+int main(){
 
   while(1){
     
@@ -386,6 +861,7 @@ int main() {
     while(1){
 
       if(input == 1){
+        limpar_terminal();
         input = realizar_cadastro();
         if(input == 1){
           limpar_terminal();
@@ -407,12 +883,18 @@ int main() {
           break;
         }
 
-      }else if(input == 2){
+        }else if(input == 2){
+        limpar_terminal();
         input = realizar_consulta();
         if(input == 1){
           limpar_terminal();
           consultar_usuario();
           getchar();
+          limpar_terminal();
+          input = 2;
+        }else if(input == 2){
+          limpar_terminal();
+          consultar_plataforma();
           limpar_terminal();
           input = 2;
         }
@@ -429,7 +911,22 @@ int main() {
         }
 
       }else if(input == 3){
+        limpar_terminal();
         input = realizar_alteracao();
+        if(input == 1){
+          limpar_terminal();
+          alterar_usuario();
+          getchar();
+          limpar_terminal();
+          input = 3;
+        }else if(input == 2){
+          limpar_terminal();
+          alterar_plataforma();
+          getchar();
+          limpar_terminal();
+          input = 3;
+        }
+
         //forcando o usuario a escolher uma opcao valida
         while (input <= 0 || input > 4) {
           limpar_terminal();
@@ -438,11 +935,21 @@ int main() {
 
         }
         if(input == 4){
-            break;
+          break;
         }
-      
+
       }else if(input == 4){
+        limpar_terminal();
         input = realizar_exclusao();
+        if(input == 1){
+          limpar_terminal();
+          excluir_usuario();
+          input = 4;
+        }else if(input == 2){
+          limpar_terminal();
+          excluir_plataforma();
+          input = 4;
+        }
 
         //forcando o usuario a escolher uma opcao valida
         while (input <= 0 || input > 4) {
