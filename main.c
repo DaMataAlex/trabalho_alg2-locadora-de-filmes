@@ -358,7 +358,7 @@ void consultar_usuario(){
       printf("Usuario encontrado!\n\n");
       printf("Nome: %s\n", usuarios[i].nome);
       printf("CPF: %s\n", usuarios[i].cpf);
-      printf("Id do usuario: %ld\n", usuarios[i].id_usuario);
+      printf("Id da usuario: %ld\n", usuarios[i].id_usuario);
       printf("Telefone: %s\n", usuarios[i].phone);
       printf("Email: %s\n", usuarios[i].email);
 
@@ -401,7 +401,7 @@ void consultar_plataforma(){
       limpar_terminal();
       printf("Plataforma encontrada!\n\n");
       printf("Nome: %s\n", plataformas[i].nome_plataforma);
-      printf("ID: %ld\n", plataformas[i].id_plataforma);
+      printf("ID da plataforma: %ld\n", plataformas[i].id_plataforma);
       printf("Categoria: %s\n", plataformas[i].categoria);
       printf("Valor: R$ %.2f\n", plataformas[i].preco);
       printf("Site: %s\n", plataformas[i].site_url);
@@ -630,7 +630,7 @@ void alterar_plataforma(){
         printf("Escolha uma das opcoes abaixo:\n\n");
         printf("1 - Nome: %s\n", plataformas[i].nome_plataforma);
         printf("2 - Categoria: %s\n", plataformas[i].categoria);
-        printf("3 - Valor: %.2f\n", plataformas[i].preco);
+        printf("3 - Valor: R$ %.2f\n", plataformas[i].preco);
         printf("4 - Site: %s\n", plataformas[i].site_url);
         printf("5 - Voltar\n\n");
 
@@ -643,7 +643,7 @@ void alterar_plataforma(){
           printf("Por favor escolha uma opcao valida!\n\n");
           printf("1 - Nome: %s\n", plataformas[i].nome_plataforma);
           printf("2 - Categoria: %s\n", plataformas[i].nome_plataforma);
-          printf("3 - Valor: %f\n", plataformas[i].preco);
+          printf("3 - Valor: R$ %.2f\n", plataformas[i].preco);
           printf("4 - Site: %s\n", plataformas[i].site_url);
           printf("5 - Voltar\n\n");
 
@@ -692,6 +692,7 @@ void alterar_plataforma(){
         if(opcao_de_alteracao == 3){
           limpar_terminal();
           printf("Digite o novo valor da plataforma:\n\n");
+          printf("R$");
           scanf("%f", &plataformas[plataforma].preco);
 
           limpar_terminal();
@@ -752,7 +753,7 @@ void alterar_plataforma(){
   
     }else{
       limpar_terminal();
-      printf("Plataforma nao encontrado!\n\n");
+      printf("Plataforma nao encontrada!\n\n");
     }
   }
 }
