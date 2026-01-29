@@ -5,8 +5,8 @@
 #include <time.h>
 #define max 50
 #define max_char 50
-int idglobal_usuarios = 1000;
-int idglobal_plataformas = 5000;
+long int idglobal_usuarios = 1000;
+long int idglobal_plataformas = 5000;
 
 void limpar_terminal() {
 #ifdef _WIN32
@@ -97,7 +97,7 @@ typedef struct {
 typedef struct {
   char nome[max];
   char cpf[15]; //campo unico da struct; 15 contandos hifens e pontos
-  int id_usuario; 
+  long int id_usuario; 
   char phone[14]; //contando parenteses e hifens
   char email[max];
 
@@ -105,7 +105,7 @@ typedef struct {
 
 typedef struct {
   char nome_plataforma[max]; //campo unico da struct
-  int id_plataforma;
+  long int id_plataforma;
   char categoria[max];
   float preco;
   char site_url[max];
@@ -226,6 +226,9 @@ void cadastrar_usuario(){
     }
   }
 
+  usuarios[total_usuarios].id_usuario = idglobal_usuarios + 1;
+  idglobal_usuarios++;
+
   //esse getchar eh pra forcar quem esta usando a apertar qualquer tecla pra continuar, mas a gente pode mudar isso depois
   limpar_terminal();
   printf("\nUsuario cadastrado com sucesso!\n");
@@ -314,6 +317,9 @@ void cadastrar_plataforma(){
   printf("\nPlataforma cadastrada com sucesso!\n");
   getchar();
   limpar_terminal();
+
+  idglobal_plataformas++;
+  plataformas[total_plataformas].id_plataforma = idglobal_plataformas;
   total_plataformas++;
 
 }
@@ -352,7 +358,7 @@ void consultar_usuario(){
       printf("Usuario encontrado!\n\n");
       printf("Nome: %s\n", usuarios[i].nome);
       printf("CPF: %s\n", usuarios[i].cpf);
-      printf("Id do usuario: %d\n", usuarios[i].id_usuario);
+      printf("Id do usuario: %ld\n", usuarios[i].id_usuario);
       printf("Telefone: %s\n", usuarios[i].phone);
       printf("Email: %s\n", usuarios[i].email);
 
@@ -395,7 +401,7 @@ void consultar_plataforma(){
       limpar_terminal();
       printf("Plataforma encontrada!\n\n");
       printf("Nome: %s\n", plataformas[i].nome_plataforma);
-      printf("ID: %d\n", plataformas[i].id_plataforma);
+      printf("ID: %ld\n", plataformas[i].id_plataforma);
       printf("Categoria: %s\n", plataformas[i].categoria);
       printf("Valor: R$ %.2f\n", plataformas[i].preco);
       printf("Site: %s\n", plataformas[i].site_url);
