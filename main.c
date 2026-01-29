@@ -192,9 +192,9 @@ void cadastrar_usuario(){
   printf("CPF: %s\n", usuarios[total_usuarios].cpf);
   printf("Telefone: %s\n", usuarios[total_usuarios].phone);
 
-  int oi = 0;
+  int a = 0;
 
-  while(oi != 1){
+  while(a != 1){
 
     printf("Email: ");
     getchar();
@@ -207,16 +207,14 @@ void cadastrar_usuario(){
       }
     }
 
-    oi = 0;
-
     for(int i = 0; usuarios[total_usuarios].email[i] != '\0'; i++){
         if(usuarios[total_usuarios].email[i] == '@'){
-          oi = 1;
+          a = 1;
           break;
         }
     }
 
-    if(oi != 1){
+    if(a != 1){
       limpar_terminal();
       printf("Digite os dados do novo usuario.\n\n");
       printf("Nome: %s\n", usuarios[total_usuarios].nome);
@@ -226,8 +224,7 @@ void cadastrar_usuario(){
     }
   }
 
-  usuarios[total_usuarios].id_usuario = idglobal_usuarios + 1;
-  idglobal_usuarios++;
+  usuarios[total_usuarios].id_usuario = idglobal_usuarios++;
 
   //esse getchar eh pra forcar quem esta usando a apertar qualquer tecla pra continuar, mas a gente pode mudar isso depois
   limpar_terminal();
@@ -236,9 +233,8 @@ void cadastrar_usuario(){
 
   limpar_terminal();
 
-  idglobal_usuarios++;
   total_usuarios++;
-  usuarios[max].id_usuario = idglobal_usuarios + 1;
+  usuarios[max].id_usuario = idglobal_usuarios++;
 }
 
 void cadastrar_plataforma(){
