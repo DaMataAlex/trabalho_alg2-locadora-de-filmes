@@ -24,16 +24,28 @@ typedef struct {
   float preco_mensal;
 } Plataforma;
 
+typedef struct {
+  int id_usuario;
+  int id_plataforma;
+  int id_assinatura; //campo unico da struct
+  int ativa;
+  float valor_pago;
+
+} Assinatura;
+
 // --- Variáveis Globais (Banco de Dados em Memória) ---
 
 Cliente lista_de_clientes[TAMANHO_MAXIMO_LISTA];
 Plataforma lista_de_plataformas[TAMANHO_MAXIMO_LISTA];
+Assinatura lista_de_assinaturas[TAMANHO_MAXIMO_LISTA];
 
 int total_clientes_cadastrados = 0;
 int total_plataformas_cadastradas = 0;
+int total_assinaturas_cadastradas = 0;
 
 long int gerador_id_clientes = 1000;
 long int gerador_id_plataformas = 5000;
+long int gerador_id_assinaturas = 10000;
 
 // Códigos para identificar a operação
 const int OPERACAO_CONSULTAR = 1;
@@ -50,10 +62,9 @@ void limpar_tela_terminal() {
 #endif
 }
 
-// ler_entrada_usuario(cpf, 50, "Insira seu CPF")
+// Função de leitura segura
 void ler_entrada_usuario(char *buffer_destino, int tamanho_buffer, const char *mensagem_exibida) {
   if (mensagem_exibida) {
-    // Insira seu cpf
     printf("%s", mensagem_exibida);
   }
 
@@ -66,139 +77,25 @@ void ler_entrada_usuario(char *buffer_destino, int tamanho_buffer, const char *m
   buffer_destino[strcspn(buffer_destino, "\n")] = '\0';
 }
 
-void limpar_numero(const char *entrada, char *saida) {
-  char *p = saida;
-
-  for (int i = 0; *(entrada + i) != '\0'; i++) {
-    if (*(entrada + i) >= 48 && *(entrada + i) <= 57) {
-      *p++ = *(entrada + i);
-    }
-  }
-
-  *p = '\0';
-}
-
 // --- Funções de Validação de Formato ---
 
-// algoritmo de validação de CPF retirado de: https://www.macoratti.net/alg_cpf.htm
-int validar_formato_cpf(const char *cpf) {
-  char cpf_limpo[12];
-
-  limpar_numero(cpf, cpf_limpo);
-
-  if (strlen(cpf_limpo) != 11) return 0;
-
-  // crio uma copia do ponteiro da string para poder iterar sobre ela sem perder a ref para a string original
-  char *p = cpf_limpo;
-
-  // isso aqui vai ver se o cpf não é 111.111.111-11
-  int iguais = 1;
-  while (*(p + 1)) {
-    if (*p != *(p + 1)) {
-      iguais = 0;
-      break;
-    }
-    p++;
-  }
-  if (iguais) return 0;
-
-  int soma, resto, digito1, digito2;
-  int peso;
-
-  soma = 0;
-  peso = 10;
-  p = cpf_limpo;
-
-  for (int i = 0; i < 9; i++) {
-
-    //soma é um int, então ele pega o valor char de p e subtrai '0', ou seja, '8' (em ascii é 56) - '0' que é igual a 48, retornando o int 8
-    soma += (*p - '0') * peso;
-    p++;
-    peso--;
-  }
-
-  resto = soma % 11;
-  if (resto < 2) digito1 = 0;
-  else digito1 = 11 - resto;
-
-  soma = 0;
-  peso = 11;
-  p = cpf_limpo;
-
-  for (int i = 0; i < 10; i++) {
-    soma += (*p - '0') * peso;
-    p++;
-    peso--;
-  }
-
-  resto = soma % 11;
-  if (resto < 2) digito2 = 0;
-  else digito2 = 11 - resto;
-
-  // escrever assim é o mesmo que escrever cpf_limpo[9] e cpf_limpo[10]
-  if ((*(cpf_limpo + 9) - '0') != digito1) return 0;
-  if ((*(cpf_limpo + 10) - '0') != digito2) return 0;
-
-  return 1;
+int validar_formato_cpf(const char *texto_cpf) {
+  return(texto_cpf[3] == '.' && texto_cpf[7] == '.' && texto_cpf[11] == '-');
 }
 
-
-int validar_formato_telefone(const char *telefone) {
-  char numero_formatado[12];
-  char tipo; // f = fixo, m = móvel
-
-  limpar_numero(telefone, numero_formatado);
-
-  if (strlen(numero_formatado) == 10) tipo = 'f';
-  else if (strlen(numero_formatado) == 11) tipo = 'm';
-  else return 0;
-
-  if (tipo == 'm' && *(numero_formatado + 2) != '9') return 0;
-  if (tipo == 'f' && *(numero_formatado + 2) < '2' || *(numero_formatado + 2) > '5') return 0;
-
-  return 1;
+int validar_formato_telefone(const char *texto_telefone) {
+  return (texto_telefone[0] == '(' && texto_telefone[3] == ')' && texto_telefone[10] == '-');
 }
 
-int validar_email(const char *email) {
-  int arroba = 0, ponto = 0, a_ponto = 0, d_ponto = 0;
-
-  char *p = email;
-
-  for (int i = 0 ; *(p + 1) != '\0'; i++) {
-    if (*(p + i) == '@') {
-      if (arroba == 1 || i < 3) return 0;
-
-      arroba = 1;
-    }
-
-    if (arroba) {
-      if (ponto) {
-        d_ponto++;
-        continue;
-      } 
-      
-      if (*(p + i) == '.') {
-        ponto = 1;
-
-        if (a_ponto < 3) {
-          return 0;
-        }
-      } else {
-        a_ponto++;
-      }
-    }
-  }
-
-  if (d_ponto < 1) return 0;
-
-  return 1;
+int validar_presenca_arroba(const char *texto_email) {
+  return (strchr(texto_email, '@') != NULL);
 }
 
-int validar_formato_url(const char *url) {
-  return (strchr(url, '.') != NULL);
+int validar_formato_url(const char *texto_url) {
+  return (strchr(texto_url, '.') != NULL);
 }
 
-void ler_e_validar_entrada(char *buffer, int tamanho, const char *msg, const char *msg_erro, int (*funcao_validadora)(const char *)) {
+void ler_e_validar_entrada(char *buffer, int tamanho, const char *msg, const char *msg_erro, int (*funcao_validadora)(const char *)) { 
   ler_entrada_usuario(buffer, tamanho, msg);
 
   while (!funcao_validadora(buffer)) {
@@ -221,7 +118,7 @@ int buscar_indice_cliente_por_cpf(const char *cpf_buscado) {
 int buscar_indice_plataforma_por_nome(const char *nome_buscado) {
   for (int i = 0; i < total_plataformas_cadastradas; i++) {
     if (strcasecmp(lista_de_plataformas[i].nome_plataforma, nome_buscado) == 0) {
-      return i; //Netflix == netflix
+      return i;
     }
   }
   return -1;
@@ -243,11 +140,11 @@ void realizar_cadastro_cliente() {
 
   ler_entrada_usuario(novo_cliente->nome_completo, TAMANHO_STRING_PADRAO, "Nome Completo: ");
 
-  ler_e_validar_entrada(novo_cliente->cpf, 20, "CPF (000.000.000-00): ", "CPF Inválido!", validar_formato_cpf);
+  ler_e_validar_entrada(novo_cliente->cpf, 20, "CPF (000.000.000-00): ", "Formato invalido!", validar_formato_cpf);
 
-  ler_e_validar_entrada(novo_cliente->telefone, 20, "Telefone (00) 00000-0000: ", "Número Inválido!", validar_formato_telefone);
+  ler_e_validar_entrada(novo_cliente->telefone, 20, "Telefone (00) 00000-0000: ", "Formato invalido!", validar_formato_telefone);
 
-  ler_e_validar_entrada(novo_cliente->email, TAMANHO_STRING_PADRAO, "E-mail: ", "E-mail invalido!", validar_email);
+  ler_e_validar_entrada(novo_cliente->email, TAMANHO_STRING_PADRAO, "E-mail: ", "E-mail invalido!", validar_presenca_arroba);
 
   // Salva ID e incrementa
   novo_cliente->id_registro = gerador_id_clientes++;
@@ -264,6 +161,8 @@ void realizar_cadastro_plataforma() {
     getchar();
     return;
   }
+  return -1;
+}
 
   Plataforma *nova_plataforma = &lista_de_plataformas[total_plataformas_cadastradas];
 
@@ -347,7 +246,7 @@ void gerenciar_clientes(int tipo_operacao) {
       } else if (opcao_submenu == 3) {
         ler_e_validar_entrada(cliente_alvo->telefone, 20, "Novo Telefone: ", "Invalido!", validar_formato_telefone);
       } else if (opcao_submenu == 4) {
-        ler_e_validar_entrada(cliente_alvo->email, TAMANHO_STRING_PADRAO, "Novo E-mail: ", "Invalido!", validar_email);
+        ler_e_validar_entrada(cliente_alvo->email, TAMANHO_STRING_PADRAO, "Novo E-mail: ", "Invalido!", validar_presenca_arroba);
       }
 
       if (opcao_submenu >= 1 && opcao_submenu <= 4) {
@@ -369,7 +268,6 @@ void gerenciar_clientes(int tipo_operacao) {
     printf("\nCliente excluido!\nENTER para continuar.");
     getchar();
   }
-}
 
 // ==========================================================
 // MÓDULO ESPECÍFICO: GERENCIAMENTO DE PLATAFORMAS
@@ -510,11 +408,12 @@ int main() {
         realizar_cadastro_plataforma();
       }
     } else { // CONSULTAR (2), ALTERAR (3), EXCLUIR (4)
-      char *titulos_menus[] = { "", "MENU DE CONSULTA", "MENU DE ALTERACAO", "MENU DE EXCLUSAO" };
+      char *titulos_menus[] = { "MENU DE CONSULTA", "MENU DE ALTERACAO", "MENU DE EXCLUSAO" };
 
-      int escolha = exibir_submenu_e_obter_escolha(titulos_menus[opcao_menu_principal - 1]); // -1 pq array começa em 0
+      // Reutiliza o menu
+      int escolha = exibir_submenu_e_obter_escolha(titulos_menus[opcao_menu_principal - 2]);
 
-      // Define o tipo de operação baseado no menu principal
+      // Define o tipo de operação baseado no menu principal (2->1, 3->2, 4->3)
       int tipo_operacao = opcao_menu_principal - 1;
 
       if (escolha == 1) {
