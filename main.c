@@ -1,14 +1,60 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <string.h>
-#include <time.h>
-#define max 50
-#define max_char 50
-long int idglobal_usuarios = 1000;
-long int idglobal_plataformas = 5000;
 
-void limpar_terminal() {
+// Definições de constantes para facilitar manutenção
+#define TAMANHO_MAXIMO_LISTA 50
+#define TAMANHO_STRING_PADRAO 50
+
+// --- Definição das Estruturas de Dados ---
+
+typedef struct {
+  char nome_completo[TAMANHO_STRING_PADRAO];
+  char cpf[20];
+  char telefone[20];
+  char email[TAMANHO_STRING_PADRAO];
+  long int id_registro;
+} Cliente;
+
+typedef struct {
+  char nome_plataforma[TAMANHO_STRING_PADRAO];
+  char categoria[TAMANHO_STRING_PADRAO];
+  char url_site[TAMANHO_STRING_PADRAO];
+  long int id_registro;
+  float preco_mensal;
+} Plataforma;
+
+typedef struct {
+  int id_usuario;
+  int id_plataforma;
+  int id_assinatura; //campo unico da struct
+  int ativa;
+  float valor_pago;
+
+} Assinatura;
+
+// --- Variáveis Globais (Banco de Dados em Memória) ---
+
+Cliente lista_de_clientes[TAMANHO_MAXIMO_LISTA];
+Plataforma lista_de_plataformas[TAMANHO_MAXIMO_LISTA];
+Assinatura lista_de_assinaturas[TAMANHO_MAXIMO_LISTA];
+
+int total_clientes_cadastrados = 0;
+int total_plataformas_cadastradas = 0;
+int total_assinaturas_cadastradas = 0;
+
+long int gerador_id_clientes = 1000;
+long int gerador_id_plataformas = 5000;
+long int gerador_id_assinaturas = 10000;
+
+// Códigos para identificar a operação
+const int OPERACAO_CONSULTAR = 1;
+const int OPERACAO_ALTERAR = 2;
+const int OPERACAO_EXCLUIR = 3;
+
+// --- Funções Auxiliares de Sistema ---
+
+void limpar_tela_terminal() {
 #ifdef _WIN32
   system("cls");
 #else
@@ -16,953 +62,365 @@ void limpar_terminal() {
 #endif
 }
 
-//menus
-int menu_principal() {
+// Função de leitura segura
+void ler_entrada_usuario(char *buffer_destino, int tamanho_buffer, const char *mensagem_exibida) {
+  if (mensagem_exibida) {
+    printf("%s", mensagem_exibida);
+  }
 
-  //Create Read Update Delete
-  printf("PLATAFORMA DE GERENCIAMENTO DE ASSINATURAS DE STREAMING\n\n");
-  printf("Escolha umas das seguintes opcoes:\n");
-  printf("1 - Realizar um cadastro de clientes, plataformas ou assinaturas.\n");
-  printf("2 - Consultar os dados de clientes, plataformas, ou assinaturas.\n");
-  printf("3 - Alterar as informacoes de clientes, plataformas ou assinaturas.\n");
-  printf("4 - Excluir os dados de clientes, plataformas ou assinaturas.\n");
-  printf("5 - Sair\n\n");
+  // Tenta ler o texto
+  if (fgets(buffer_destino, tamanho_buffer, stdin) == NULL) {
+    return;
+  }
 
-  int a;
-  scanf("%d", &a);
-  return a;
+  // Remove o \n usando strcspn
+  buffer_destino[strcspn(buffer_destino, "\n")] = '\0';
 }
 
-int realizar_cadastro(){
+// --- Funções de Validação de Formato ---
 
-  printf("O que voce deseja cadastrar?\n\n");
-  printf("1 - Cadastro de clientes.\n");
-  printf("2 - Cadastro de plataformas.\n");
-  printf("3 - Cadastro de assinaturas.\n");
-  printf("4 - Voltar\n\n");
-
-  int a;
-  scanf("%d", &a);
-  return a;
+int validar_formato_cpf(const char *texto_cpf) {
+  return(texto_cpf[3] == '.' && texto_cpf[7] == '.' && texto_cpf[11] == '-');
 }
 
-int realizar_consulta(){
-
-  printf("O que voce deseja consultar?\n\n");
-  printf("1 - Consultar clientes.\n");
-  printf("2 - Consultar plataformas.\n");
-  printf("3 - Consultar assinaturas.\n");
-  printf("4 - Voltar\n\n");
-
-  int a;
-  scanf("%d", &a);
-  return a;
+int validar_formato_telefone(const char *texto_telefone) {
+  return (texto_telefone[0] == '(' && texto_telefone[3] == ')' && texto_telefone[10] == '-');
 }
 
-int realizar_alteracao(){
-
-  printf("O que voce deseja alterar?\n\n");
-  printf("1 - Alterar dados de clientes.\n");
-  printf("2 - Alterar dados de plataformas.\n");
-  printf("3 - Alterar dados de assinaturas.\n");
-  printf("4 - Voltar\n\n");
-
-  int a;
-  scanf("%d", &a);
-  return a;
+int validar_presenca_arroba(const char *texto_email) {
+  return (strchr(texto_email, '@') != NULL);
 }
 
-int realizar_exclusao(){
-
-  printf("O que voce deseja excluir?\n\n");
-  printf("1 - Excluir clientes.\n");
-  printf("2 - Excluir plataformas.\n");
-  printf("3 - Excluir assinaturas.\n");
-  printf("4 - Voltar\n\n");
-
-  int a;
-  scanf("%d", &a);
-  return a;
+int validar_formato_url(const char *texto_url) {
+  return (strchr(texto_url, '.') != NULL);
 }
 
-//struct de datas
-typedef struct {
-  int dia;
-  int mes;
-  int ano;
+void ler_e_validar_entrada(char *buffer, int tamanho, const char *msg, const char *msg_erro, int (*funcao_validadora)(const char *)) { 
+  ler_entrada_usuario(buffer, tamanho, msg);
 
-}DATAS;
+  while (!funcao_validadora(buffer)) {
+    printf("%s\n", msg_erro);
+    ler_entrada_usuario(buffer, tamanho, msg);
+  }
+}
 
-//principais structs
-typedef struct {
-  char nome[max];
-  char cpf[15]; //campo unico da struct; 15 contandos hifens e pontos
-  long int id_usuario; 
-  char phone[14]; //contando parenteses e hifens
-  char email[max];
+// --- Funções de Busca ---
 
-}USUARIOS;
+int buscar_indice_cliente_por_cpf(const char *cpf_buscado) {
+  for (int i = 0; i < total_clientes_cadastrados; i++) {
+    if (strcmp(lista_de_clientes[i].cpf, cpf_buscado) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
 
-typedef struct {
-  char nome_plataforma[max]; //campo unico da struct
-  long int id_plataforma;
-  char categoria[max];
-  float preco;
-  char site_url[max];
+int buscar_indice_plataforma_por_nome(const char *nome_buscado) {
+  for (int i = 0; i < total_plataformas_cadastradas; i++) {
+    if (strcasecmp(lista_de_plataformas[i].nome_plataforma, nome_buscado) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
 
-}PLATAFORMAS;
+// --- Funções de Cadastro ---
 
-typedef struct {
-  int id_usuario;
-  int id_plataforma;
-  int id_assinatura; //campo unico da struct
-  DATAS data_inicio_assinatura;
-  DATAS data_proxima_cobranca;
-  int ativa;
-  float valor_pago;
-
-}ASSINATURAS;
-
-USUARIOS usuarios[max];
-int total_usuarios = 0;
-PLATAFORMAS plataformas[max];
-int total_plataformas = 0;
-
-//funcoes de cadastro
-void cadastrar_usuario(){
-
-  if(total_usuarios >= max){
-    limpar_terminal();
-    printf("Limite de usuarios atingido!\n");
+void realizar_cadastro_cliente() {
+  if (total_clientes_cadastrados >= TAMANHO_MAXIMO_LISTA) {
+    printf("Erro: Limite de clientes atingido!\n");
     getchar();
     return;
   }
 
-  printf("Digite os dados do novo usuario.\n\n");
-  printf("Nome: ");
+  Cliente *novo_cliente = &lista_de_clientes[total_clientes_cadastrados];
+
+  limpar_tela_terminal();
+  printf("--- Cadastro de Novo Cliente ---\n\n");
+
+  ler_entrada_usuario(novo_cliente->nome_completo, TAMANHO_STRING_PADRAO, "Nome Completo: ");
+
+  ler_e_validar_entrada(novo_cliente->cpf, 20, "CPF (000.000.000-00): ", "Formato invalido!", validar_formato_cpf);
+
+  ler_e_validar_entrada(novo_cliente->telefone, 20, "Telefone (00) 00000-0000: ", "Formato invalido!", validar_formato_telefone);
+
+  ler_e_validar_entrada(novo_cliente->email, TAMANHO_STRING_PADRAO, "E-mail: ", "E-mail invalido!", validar_presenca_arroba);
+
+  // Salva ID e incrementa
+  novo_cliente->id_registro = gerador_id_clientes++;
+  total_clientes_cadastrados++;
+
+  printf("\nSucesso! Cliente cadastrado com ID: %ld\n", novo_cliente->id_registro);
+  printf("Pressione ENTER para continuar...");
   getchar();
-  fgets(usuarios[total_usuarios].nome, max_char, stdin);
-
-  //pra remover o \n no final do nome do caba
-  for(int i = 0; i < max_char; i++){
-    if(usuarios[total_usuarios].nome[i] == '\n'){
-      usuarios[total_usuarios].nome[i] = '\0';
-    }
-  }
-
-  printf("CPF: ");
-  fgets(usuarios[total_usuarios].cpf, 15, stdin);
-  
-  while(usuarios[total_usuarios].cpf[3]  != '.' || usuarios[total_usuarios].cpf[7]  != '.' || usuarios[total_usuarios].cpf[11] != '-'){
-
-    limpar_terminal();
-    printf("Digite os dados do novo usuario.\n\n");
-    printf("Nome: %s\n", usuarios[total_usuarios].nome);
-    printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
-    printf("CPF: ");
-
-    fgets(usuarios[total_usuarios].cpf, 15, stdin);
-  }
-
-  limpar_terminal();
-  printf("Digite os dados do novo usuario.\n\n");
-  printf("Nome: %s\n", usuarios[total_usuarios].nome);
-  printf("CPF: %s\n", usuarios[total_usuarios].cpf);
-
-  printf("Telefone: ");
-  getchar();
-  fgets(usuarios[total_usuarios].phone, 14, stdin);
-
-  while(usuarios[total_usuarios].phone[0] != '(' || usuarios[total_usuarios].phone[3] != ')' || usuarios[total_usuarios].phone[8] != '-'){
-
-    limpar_terminal();
-    printf("Digite os dados do novo usuario.\n\n");
-    printf("Nome: %s\n", usuarios[total_usuarios].nome);
-    printf("CPF: %s\n", usuarios[total_usuarios].cpf);
-    printf("Por favor, insira o TELEFONE no formato correto! (00)0000-0000\n");
-    printf("Telefone: ");
-
-    fgets(usuarios[total_usuarios].phone, 14, stdin);
-
-  }
-
-  limpar_terminal();
-  printf("Digite os dados do novo usuario.\n\n");
-  printf("Nome: %s\n", usuarios[total_usuarios].nome);
-  printf("CPF: %s\n", usuarios[total_usuarios].cpf);
-  printf("Telefone: %s\n", usuarios[total_usuarios].phone);
-
-  int a = 0;
-
-  while(a != 1){
-
-    printf("Email: ");
-    getchar();
-    fgets(usuarios[total_usuarios].email, max_char, stdin);
-
-    //removedor de \n
-    for(int i = 0; i < max_char; i++){
-      if(usuarios[total_usuarios].email[i] == '\n'){
-        usuarios[total_usuarios].email[i] = '\0';
-      }
-    }
-
-    for(int i = 0; usuarios[total_usuarios].email[i] != '\0'; i++){
-        if(usuarios[total_usuarios].email[i] == '@'){
-          a = 1;
-          break;
-        }
-    }
-
-    if(a != 1){
-      limpar_terminal();
-      printf("Digite os dados do novo usuario.\n\n");
-      printf("Nome: %s\n", usuarios[total_usuarios].nome);
-      printf("CPF: %s\n", usuarios[total_usuarios].cpf);
-      printf("Telefone: %s\n", usuarios[total_usuarios].phone);
-      printf("Por favor, insira um Email valido!\n");
-    }
-  }
-
-  usuarios[total_usuarios].id_usuario = idglobal_usuarios++;
-
-  //esse getchar eh pra forcar quem esta usando a apertar qualquer tecla pra continuar, mas a gente pode mudar isso depois
-  limpar_terminal();
-  printf("\nUsuario cadastrado com sucesso!\n");
-  getchar();
-
-  limpar_terminal();
-
-  total_usuarios++;
-  usuarios[max].id_usuario = idglobal_usuarios++;
 }
 
-void cadastrar_plataforma(){
-
-  if(total_plataformas >= max){
-    limpar_terminal();
-    printf("Limite de plataformas atingido!\n");
+void realizar_cadastro_plataforma() {
+  if (total_plataformas_cadastradas >= TAMANHO_MAXIMO_LISTA) {
+    printf("Erro: Limite de plataformas atingido!\n");
     getchar();
     return;
   }
 
-  printf("Digite os dados da nova plataforma.\n\n");
-  printf("Nome: ");
+  Plataforma *nova_plataforma = &lista_de_plataformas[total_plataformas_cadastradas];
+
+  limpar_tela_terminal();
+  printf("--- Cadastro de Nova Plataforma ---\n\n");
+
+  ler_entrada_usuario(nova_plataforma->nome_plataforma, TAMANHO_STRING_PADRAO, "Nome da Plataforma: ");
+
+  ler_entrada_usuario(nova_plataforma->categoria, TAMANHO_STRING_PADRAO, "Categoria (ex: Filmes, Musica): ");
+
+  printf("Valor da Mensalidade: R$ ");
+  scanf("%f", &nova_plataforma->preco_mensal);
+  getchar(); // Consumir a quebra de linha do scanf
+
+  ler_e_validar_entrada(nova_plataforma->url_site, TAMANHO_STRING_PADRAO, "Site Oficial: ", "URL invalida!", validar_formato_url);
+
+  // Salva ID e incrementa
+  nova_plataforma->id_registro = gerador_id_plataformas++;
+  total_plataformas_cadastradas++;
+
+  printf("\nSucesso! Plataforma cadastrada com ID: %ld\n", nova_plataforma->id_registro);
+  printf("Pressione ENTER para continuar...");
   getchar();
-  fgets(plataformas[total_plataformas].nome_plataforma, max_char, stdin);
-
-  //pra remover o \n no final do nome do servico
-  for(int i = 0; i < max_char; i++){
-    if(plataformas[total_plataformas].nome_plataforma[i] == '\n'){
-      plataformas[total_plataformas].nome_plataforma[i] = '\0';
-    }
-  }
-
-  printf("Categoria: ");
-  fgets(plataformas[total_plataformas].categoria, max_char, stdin);
-  
-  //pra remover o \n no final da categoria
-  for(int i = 0; i < max_char; i++){
-    if(plataformas[total_plataformas].categoria[i] == '\n'){
-      plataformas[total_plataformas].categoria[i] = '\0';
-    }
-  }
-
-  printf("Valor: R$");
-  scanf("%f", &plataformas[total_plataformas].preco);
-
-  
-
-  printf("Site: ");
-  getchar();
-  fgets(plataformas[total_plataformas].site_url, max_char, stdin);
-
-  int ponto_final = 0;
-
-  while(ponto_final == 0){
-
-    ponto_final = 0;
-
-    for(int i = 0; plataformas[total_plataformas].site_url[i] != '\0'; i++){
-      if(plataformas[total_plataformas].site_url[i] == '.'){
-        ponto_final = 1;
-        break;
-      }
-    }
-    if(ponto_final == 0){
-      limpar_terminal();
-      printf("Digite os dados da nova plataforma.\n\n");
-      printf("Nome: %s\n", plataformas[total_plataformas].nome_plataforma);
-      printf("Categoria: %s\n", plataformas[total_plataformas].categoria);
-      printf("Valor: R$%.2f\n", plataformas[total_plataformas].preco);
-      printf("Por favor, insira um Site valido!\n");
-      printf("Site: ");
-      fgets(plataformas[total_plataformas].site_url, max_char, stdin);
-    }
-  }
-
-
-  //pra remover o \n
-  for(int i = 0; i < max_char; i++){
-    if(plataformas[total_plataformas].site_url[i] == '\n'){
-      plataformas[total_plataformas].site_url[i] = '\0';
-    }
-  }
-
-  limpar_terminal();
-  printf("\nPlataforma cadastrada com sucesso!\n");
-  getchar();
-  limpar_terminal();
-
-  idglobal_plataformas++;
-  plataformas[total_plataformas].id_plataforma = idglobal_plataformas;
-  total_plataformas++;
-
 }
 
-//funcoes de consulta
-void consultar_usuario(){
+// ==========================================================
+// MÓDULO ESPECÍFICO: GERENCIAMENTO DE CLIENTES
+// ==========================================================
 
-  char consulta_cpf[15];
+void gerenciar_clientes(int tipo_operacao) {
+  char termo_busca[20];
+  int indice_encontrado = -1;
 
-  printf("Digite o CPF do usuario o qual os dados serao consultados:\n\n");
-  getchar();
-  fgets(consulta_cpf, 15, stdin);
+  limpar_tela_terminal();
 
-  while(consulta_cpf[3] != '.' || consulta_cpf[7] != '.' || consulta_cpf[11] != '-'){
+  ler_entrada_usuario(termo_busca, 20, "Digite o CPF do cliente para busca: ");
+  indice_encontrado = buscar_indice_cliente_por_cpf(termo_busca);
 
-    limpar_terminal();
-    printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
-    printf("Digite o CPF do usuario o qual os dados serao consultados: \n\n");
-
-    fgets(consulta_cpf, 15, stdin);
-    
-    //pra remover a quebra de linha
-    for(int i = 0; i < 15; i++){
-      if(consulta_cpf[i] == '\n'){
-      consulta_cpf[i] = '\0';
-      break;
-      }
-    }
+  if (indice_encontrado == -1) {
+    printf("\nErro: Cliente nao encontrado.\nENTER para voltar.");
+    getchar();
+    return;
   }
 
-  int encontrado = 0;
-  for(int i = 0; i < total_usuarios; i++){
-    if(strcmp(usuarios[i].cpf, consulta_cpf) == 0){
+  Cliente *cliente_alvo = &lista_de_clientes[indice_encontrado];
 
-      limpar_terminal();
-      printf("Usuario encontrado!\n\n");
-      printf("Nome: %s\n", usuarios[i].nome);
-      printf("CPF: %s\n", usuarios[i].cpf);
-      printf("Id da usuario: %ld\n", usuarios[i].id_usuario);
-      printf("Telefone: %s\n", usuarios[i].phone);
-      printf("Email: %s\n", usuarios[i].email);
+  // --- CONSULTAR ---
+  if (tipo_operacao == OPERACAO_CONSULTAR) {
+    printf("\n=== Detalhes do Cliente ===\n");
+    printf("ID: %ld\n", cliente_alvo->id_registro);
+    printf("Nome: %s\n", cliente_alvo->nome_completo);
+    printf("CPF: %s\n", cliente_alvo->cpf);
+    printf("Telefone: %s\n", cliente_alvo->telefone);
+    printf("E-mail: %s\n", cliente_alvo->email);
 
-      encontrado = 1;
-      break;
-    }
-  }
-
-  if(encontrado == 0){
-    limpar_terminal();
-    
-    printf("Usuario nao encontrado!\n\n");
+    printf("\nPressione ENTER para voltar.");
     getchar();
   }
 
-  getchar();
-}
-
-void consultar_plataforma(){
-
-  char consulta_nome[max_char];
-
-  printf("Digite o nome da plataforma que sera consultada:\n\n");
-  getchar();
-  fgets(consulta_nome, max_char, stdin);
-
-  // remover '\n' da consulta
-  for(int i = 0; i < max_char; i++){
-    if(consulta_nome[i] == '\n'){
-      consulta_nome[i] = '\0';
-      break;
-    }
-  }
-
-  int encontrado = 0;
-
-  for(int i = 0; i < total_plataformas; i++){
-    if(strcmp(plataformas[i].nome_plataforma, consulta_nome) == 0){
-
-      limpar_terminal();
-      printf("Plataforma encontrada!\n\n");
-      printf("Nome: %s\n", plataformas[i].nome_plataforma);
-      printf("ID da plataforma: %ld\n", plataformas[i].id_plataforma);
-      printf("Categoria: %s\n", plataformas[i].categoria);
-      printf("Valor: R$ %.2f\n", plataformas[i].preco);
-      printf("Site: %s\n", plataformas[i].site_url);
-
-      encontrado = 1;
-      break;
-    }
-  }
-
-  if(encontrado == 0){
-    limpar_terminal();
-    printf("Plataforma nao encontrada!\n\n");
-  }
-
-  getchar();
-}
-
-//funcoes de alteracao
-void alterar_usuario(){
-
-  char procurar_cpf[15];
-
-  printf("Digite o CPF do usuario o qual os dados serao alterados: \n\n");
-  getchar();
-  fgets(procurar_cpf, 15, stdin);
-
-  while(procurar_cpf[3] != '.' || procurar_cpf[7] != '.' || procurar_cpf[11] != '-'){
-
-    limpar_terminal();
-    printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
-    printf("Digite o CPF do usuario o qual os dados serao alterados: \n\n");
-
-    fgets(procurar_cpf, 15, stdin);
-    
-    //pra remover a quebra de linha
-    for(int i = 0; i < 15; i++){
-      if(procurar_cpf[i] == '\n'){
-      procurar_cpf[i] = '\0';
-      break;
-      }
-    }
-  }
-
-  /*esse inteiro "usuario" serve como um localizador do usuario apos ele ser encontrado,
-  acredito que seria possivel utilizar ponteiros, mas ainda nao estou confiante pra isso*/
-  int opcao_de_alteracao;
-  int usuario = 0;
-  int encontrado = 1;
-  for(int i = 0; i < total_usuarios; i++){
-    encontrado = strcmp(usuarios[i].cpf, procurar_cpf);
-    if(encontrado == 0){
-
-      while(1){
-        usuario = i;
-        limpar_terminal();
-        printf("Qual dado do usuario sera alterado?\n");
-        printf("Escolha uma das opcoes abaixo:\n\n");
-        printf("1 - Nome: %s\n", usuarios[i].nome);
-        printf("2 - CPF: %s\n", usuarios[i].cpf);
-        printf("3 - Telefone: %s\n", usuarios[i].phone);
-        printf("4 - Email: %s\n", usuarios[i].email);
-        printf("5 - Voltar\n\n");
-
-        scanf("%d", &opcao_de_alteracao);
-
-        while(opcao_de_alteracao < 1 || opcao_de_alteracao > 5){
-          limpar_terminal();
-          printf("Qual dado do usuario sera alterado?\n");
-          printf("Escolha uma das opcoes abaixo:\n");
-          printf("Por favor escolha uma opcao valida!\n\n");
-          printf("1 - Nome: %s\n", usuarios[i].nome);
-          printf("2 - CPF: %s\n", usuarios[i].cpf);
-          printf("3 - Telefone: %s\n", usuarios[i].phone);
-          printf("4 - Email: %s\n", usuarios[i].email);
-          printf("5 - Voltar\n\n");
-
-          scanf("%d", &opcao_de_alteracao);
-        }
-
-        //alterar nome
-        if(opcao_de_alteracao == 1){
-          limpar_terminal();
-          printf("Digite o novo nome do usuario:\n\n");
-          getchar();
-          fgets(usuarios[usuario].nome, max_char, stdin);
-
-          //removedor de \n
-          for(int i = 0; i < max_char; i++){
-            if(usuarios[usuario].nome[i] == '\n'){
-              usuarios[usuario].nome[i] = '\0';
-            }
-          }
-
-          limpar_terminal();
-          printf("Alteracao realizada com sucesso!\n");
-          getchar();
-        }
-
-        //alterar cpf
-        if(opcao_de_alteracao == 2){
-          limpar_terminal();
-          printf("Digite o novo CPF do usuario:\n\n");
-          getchar();
-          fgets(usuarios[usuario].cpf, 15, stdin);
-        
-          while(usuarios[usuario].cpf[3]  != '.' || usuarios[usuario].cpf[7]  != '.' || usuarios[usuario].cpf[11] != '-'){
-
-          limpar_terminal();
-          printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
-          printf("Digite o novo CPF do usuario:\n\n");
-          fgets(usuarios[usuario].cpf, 15, stdin);
-          }
-
-          limpar_terminal();
-          getchar();
-          printf("Alteracao realizada com sucesso!\n");
-          getchar();
-        }
-
-        //alterar telefone
-        if(opcao_de_alteracao == 3){
-          limpar_terminal();
-          printf("Digite o novo telefone do usuario:\n\n");
-          getchar();
-          fgets(usuarios[usuario].phone, 14, stdin);
-
-          while(usuarios[usuario].phone[0] != '(' || usuarios[usuario].phone[3] != ')' || usuarios[usuario].phone[8] != '-'){
-
-          limpar_terminal();
-          printf("Por favor, insira o TELEFONE no formato correto! (00)0000-0000\n");
-          printf("Digite o novo telefone do usuario:\n\n");
-          fgets(usuarios[usuario].phone, 14, stdin);
-
-          }
-
-          limpar_terminal();
-          getchar();
-          printf("Alteracao realizada com sucesso!\n");
-          getchar();
-        }
-
-        //alterar email
-        if(opcao_de_alteracao == 4){
-          limpar_terminal();
-          printf("Digite o novo email do usuario:\n\n");
-          getchar();
-          fgets(usuarios[usuario].email, max_char, stdin);
-
-          int a = 0;
-          for(int i = 0; usuarios[usuario].email[i] != '\0'; i++){
-            if(usuarios[usuario].email[i] == '@'){
-              a = 1;
-            }
-          }
-
-          //removedor de \n
-          for(int i = 0; i < max_char; i++){
-            if(usuarios[usuario].email[i] == '\n'){
-              usuarios[usuario].email[i] = '\0';
-            }
-          }
-          
-          while(a != 1){
-            limpar_terminal();
-            printf("Por favor, insira um Email valido!\n");
-            printf("Digite o novo email do usuario:\n\n");
-            fgets(usuarios[usuario].email, max_char, stdin);
-
-            //removedor de \n
-            for(int i = 0; i < max_char; i++){
-              if(usuarios[usuario].email[i] == '\n'){
-                usuarios[usuario].email[i] = '\0';
-              }
-            }
-
-            for(int i = 0; usuarios[usuario].email[i] != '\0'; i++){
-            if(usuarios[usuario].email[i] == '@'){
-              a = 1;
-            }
-            }
-          }
-
-        limpar_terminal();
-        printf("Alteracao realizada com sucesso!\n");
-      }
-
-        if(opcao_de_alteracao == 5){
-          break;
-        }
-      }
-  
-    }else{
-      limpar_terminal();
-      printf("Usuario nao encontrado!\n\n");
-    }
-  }
-}
-
-void alterar_plataforma(){
-
-  char procurar_nome[max_char];
-
-  printf("Digite o nome da plataforma a qual os dados serao alterados: \n\n");
-  getchar();
-  fgets(procurar_nome, max_char, stdin);
-  
-  //pra remover a quebra de linha
-  for(int i = 0; i < max_char; i++){
-    if(procurar_nome[i] == '\n'){
-    procurar_nome[i] = '\0';
-    break;
-    }
-  }
-
-  int opcao_de_alteracao;
-  int plataforma = 0;
-  int encontrado = 1;
-  for(int i = 0; i < total_plataformas; i++){
-    encontrado = strcmp(plataformas[i].nome_plataforma, procurar_nome);
-    if(encontrado == 0){
-
-      while(1){
-        plataforma = i;
-        limpar_terminal();
-        printf("Qual dado da plataforma sera alterado?\n");
-        printf("Escolha uma das opcoes abaixo:\n\n");
-        printf("1 - Nome: %s\n", plataformas[i].nome_plataforma);
-        printf("2 - Categoria: %s\n", plataformas[i].categoria);
-        printf("3 - Valor: R$ %.2f\n", plataformas[i].preco);
-        printf("4 - Site: %s\n", plataformas[i].site_url);
-        printf("5 - Voltar\n\n");
-
-        scanf("%d", &opcao_de_alteracao);
-
-        while(opcao_de_alteracao < 1 || opcao_de_alteracao > 5){
-          limpar_terminal();
-          printf("Qual dado da plataforma sera alterado?\n");
-          printf("Escolha uma das opcoes abaixo:\n");
-          printf("Por favor escolha uma opcao valida!\n\n");
-          printf("1 - Nome: %s\n", plataformas[i].nome_plataforma);
-          printf("2 - Categoria: %s\n", plataformas[i].nome_plataforma);
-          printf("3 - Valor: R$ %.2f\n", plataformas[i].preco);
-          printf("4 - Site: %s\n", plataformas[i].site_url);
-          printf("5 - Voltar\n\n");
-
-          scanf("%d", &opcao_de_alteracao);
-        }
-
-        //alterar nome
-        if(opcao_de_alteracao == 1){
-          limpar_terminal();
-          printf("Digite o novo nome da plataforma:\n\n");
-          getchar();
-          fgets(plataformas[plataforma].nome_plataforma, max_char, stdin);
-
-          //removedor de \n
-          for(int i = 0; i < max_char; i++){
-            if(plataformas[plataforma].nome_plataforma[i] == '\n'){
-              plataformas[plataforma].nome_plataforma[i] = '\0';
-            }
-          }
-
-          limpar_terminal();
-          printf("Alteracao realizada com sucesso!\n");
-          getchar();
-        }
-
-        //alterar categoria
-        if(opcao_de_alteracao == 2){
-          limpar_terminal();
-          printf("Digite a nova categoria da plataforma:\n\n");
-          getchar();
-          fgets(plataformas[plataforma].categoria, max_char, stdin);
-
-          //removedor de \n
-          for(int i = 0; i < max_char; i++){
-            if(plataformas[plataforma].categoria[i] == '\n'){
-              plataformas[plataforma].categoria[i] = '\0';
-            }
-          }
-
-          limpar_terminal();
-          printf("Alteracao realizada com sucesso!\n");
-          getchar();
-        }
-
-        //alterar valor
-        if(opcao_de_alteracao == 3){
-          limpar_terminal();
-          printf("Digite o novo valor da plataforma:\n\n");
-          printf("R$");
-          scanf("%f", &plataformas[plataforma].preco);
-
-          limpar_terminal();
-          getchar();
-          printf("Alteracao realizada com sucesso!\n");
-          getchar();
-        }
-
-        //alterar email
-        if(opcao_de_alteracao == 4){
-          limpar_terminal();
-          printf("Digite o novo site da plataforma:\n\n");
-          getchar();
-          fgets(plataformas[plataforma].site_url, max_char, stdin);
-
-          int ponto = 0;
-          for(int i = 0; plataformas[plataforma].site_url[i] != '\0'; i++){
-            if(plataformas[plataforma].site_url[i] == '.'){
-              ponto = 1;
-            }
-          }
-
-          //removedor de \n
-          for(int i = 0; i < max_char; i++){
-            if(plataformas[plataforma].site_url[i] == '\n'){
-              plataformas[plataforma].site_url[i] = '\0';
-            }
-          }
-          
-          while(ponto != 1){
-            limpar_terminal();
-            printf("Por favor, insira uma Url valida!\n");
-            printf("Digite o novo site da plataforma:\n\n");
-            fgets(plataformas[plataforma].site_url, max_char, stdin);
-
-            //removedor de \n
-            for(int i = 0; i < max_char; i++){
-              if(plataformas[plataforma].site_url[i] == '\n'){
-                plataformas[plataforma].site_url[i] = '\0';
-              }
-            }
-
-            for(int i = 0; plataformas[plataforma].site_url[i] != '\0'; i++){
-            if(plataformas[plataforma].site_url[i] == '.'){
-              ponto = 1;
-            }
-            }
-          }
-
-        limpar_terminal();
-        printf("Alteracao realizada com sucesso!\n");
-      }
-
-        if(opcao_de_alteracao == 5){
-          break;
-        }
-      }
-  
-    }else{
-      limpar_terminal();
-      printf("Plataforma nao encontrada!\n\n");
-    }
-  }
-}
-
-//funcoes de exclusao
-void excluir_usuario(){
-
-  char cpf_exclusao[15];
-
-  printf("Digite o CPF do usuario que sera excluido:\n\n");
-  getchar();
-  fgets(cpf_exclusao, 15, stdin);
-
-  while(cpf_exclusao[3] != '.' || cpf_exclusao[7] != '.' || cpf_exclusao[11] != '-'){
-
-    limpar_terminal();
-    printf("Por favor, insira o CPF no formato correto! (000.000.000-00)\n");
-    printf("Digite o CPF do usuario que sera excluido:\n\n");
-    fgets(cpf_exclusao, 15, stdin);
-  }
-
-  int encontrado = 0;
-
-  for(int i = 0; i < total_usuarios; i++){
-    if(strcmp(usuarios[i].cpf, cpf_exclusao) == 0){
-
-      // desloca na frente do excluido para tras
-      for(int j = i; j < total_usuarios - 1; j++){
-        usuarios[j] = usuarios[j + 1];
-      }
-
-      total_usuarios--;
-      encontrado = 1;
-
-      limpar_terminal();
-      printf("Usuario excluido com sucesso!\n");
+  // --- ALTERAR ---
+  else if (tipo_operacao == OPERACAO_ALTERAR) {
+    int opcao_submenu;
+
+    do {
+      limpar_tela_terminal();
+      printf("--- Editando: %s ---\n\n", cliente_alvo->nome_completo);
+      printf("1. Nome\n");
+      printf("2. CPF\n");
+      printf("3. Telefone\n");
+      printf("4. E-mail\n");
+      printf("5. Finalizar Edicao\n\n");
+      printf("Opcao: ");
+
+      scanf("%d", &opcao_submenu);
       getchar();
-      break;
-    }
+
+      if (opcao_submenu == 1) {
+        ler_entrada_usuario(cliente_alvo->nome_completo, TAMANHO_STRING_PADRAO, "Novo Nome: ");
+      } else if (opcao_submenu == 2) {
+        ler_e_validar_entrada(cliente_alvo->cpf, 20, "Novo CPF: ", "Invalido!", validar_formato_cpf);
+      } else if (opcao_submenu == 3) {
+        ler_e_validar_entrada(cliente_alvo->telefone, 20, "Novo Telefone: ", "Invalido!", validar_formato_telefone);
+      } else if (opcao_submenu == 4) {
+        ler_e_validar_entrada(cliente_alvo->email, TAMANHO_STRING_PADRAO, "Novo E-mail: ", "Invalido!", validar_presenca_arroba);
+      }
+
+      if (opcao_submenu >= 1 && opcao_submenu <= 4) {
+        printf("\nSucesso! ENTER para continuar.");
+        getchar();
+      }
+
+    } while (opcao_submenu != 5);
   }
 
-  if(encontrado == 0){
-    limpar_terminal();
-    printf("Usuario nao encontrado!\n");
+  // --- EXCLUIR ---
+  else if (tipo_operacao == OPERACAO_EXCLUIR) {
+    for (int i = indice_encontrado; i < total_clientes_cadastrados - 1; i++) {
+      lista_de_clientes[i] = lista_de_clientes[i + 1];
+    }
+
+    total_clientes_cadastrados--;
+
+    printf("\nCliente excluido!\nENTER para continuar.");
     getchar();
   }
 }
 
-void excluir_plataforma(){
+// ==========================================================
+// MÓDULO ESPECÍFICO: GERENCIAMENTO DE PLATAFORMAS
+// ==========================================================
 
-  char nome_exclusao[max_char];
+void gerenciar_plataformas(int tipo_operacao) {
+  char termo_busca[TAMANHO_STRING_PADRAO];
+  int indice_encontrado = -1;
 
-  printf("Digite o nome da plataforma que sera excluida:\n\n");
-  getchar();
-  fgets(nome_exclusao, 15, stdin);
+  limpar_tela_terminal();
 
-  int encontrado = 0;
+  ler_entrada_usuario(termo_busca, TAMANHO_STRING_PADRAO, "Digite o Nome da plataforma para busca: ");
+  indice_encontrado = buscar_indice_plataforma_por_nome(termo_busca);
 
-  for(int i = 0; i < total_plataformas; i++){
-    if(strcmp(plataformas[i].nome_plataforma, nome_exclusao) == 0){
+  if (indice_encontrado == -1) {
+    printf("\nErro: Plataforma nao encontrada.\nENTER para voltar.");
+    getchar();
+    return;
+  }
 
-      // desloca na frente do excluido para tras
-      for(int j = i; j < total_plataformas - 1; j++){
-        plataformas[j] = plataformas[j + 1];
-      }
+  Plataforma *plataforma_alvo = &lista_de_plataformas[indice_encontrado];
 
-      total_plataformas--;
-      encontrado = 1;
+  // --- CONSULTAR ---
+  if (tipo_operacao == OPERACAO_CONSULTAR) {
+    printf("\n=== Detalhes da Plataforma ===\n");
+    printf("ID: %ld\n", plataforma_alvo->id_registro);
+    printf("Nome: %s\n", plataforma_alvo->nome_plataforma);
+    printf("Categoria: %s\n", plataforma_alvo->categoria);
+    printf("Valor: R$ %.2f\n", plataforma_alvo->preco_mensal);
+    printf("Site: %s\n", plataforma_alvo->url_site);
 
-      limpar_terminal();
-      printf("Plataforma excluida com sucesso!\n");
+    printf("\nPressione ENTER para voltar.");
+    getchar();
+  }
+
+  // --- ALTERAR ---
+  else if (tipo_operacao == OPERACAO_ALTERAR) {
+    int opcao_submenu;
+
+    do {
+      limpar_tela_terminal();
+      printf("--- Editando: %s ---\n\n", plataforma_alvo->nome_plataforma);
+      printf("1. Nome\n");
+      printf("2. Categoria\n");
+      printf("3. Valor Mensal\n");
+      printf("4. Site\n");
+      printf("5. Finalizar Edicao\n\n");
+      printf("Opcao: ");
+
+      scanf("%d", &opcao_submenu);
       getchar();
-      break;
-    }
+
+      if (opcao_submenu == 1) {
+        ler_entrada_usuario(plataforma_alvo->nome_plataforma, TAMANHO_STRING_PADRAO, "Novo Nome: ");
+      } else if (opcao_submenu == 2) {
+        ler_entrada_usuario(plataforma_alvo->categoria, TAMANHO_STRING_PADRAO, "Nova Categoria: ");
+      } else if (opcao_submenu == 3) {
+        printf("Novo Valor: R$ ");
+        scanf("%f", &plataforma_alvo->preco_mensal);
+        getchar();
+      } else if (opcao_submenu == 4) {
+        ler_e_validar_entrada(plataforma_alvo->url_site, TAMANHO_STRING_PADRAO, "Novo Site: ", "Invalido!", validar_formato_url);
+      }
+
+      if (opcao_submenu >= 1 && opcao_submenu <= 4) {
+        printf("\nSucesso! ENTER para continuar.");
+        getchar();
+      }
+
+    } while (opcao_submenu != 5);
   }
 
-  if(encontrado == 0){
-    limpar_terminal();
-    printf("Plataforma nao encontrado!\n");
+  // --- EXCLUIR ---
+  else if (tipo_operacao == OPERACAO_EXCLUIR) {
+    for (int i = indice_encontrado; i < total_plataformas_cadastradas - 1; i++) {
+      lista_de_plataformas[i] = lista_de_plataformas[i + 1];
+    }
+
+    total_plataformas_cadastradas--;
+
+    printf("\nPlataforma excluida!\nENTER para continuar.");
     getchar();
   }
 }
 
-int main(){
+// --- Menus do Sistema ---
 
-  while(1){
-    
-    limpar_terminal();
+int exibir_submenu_e_obter_escolha(const char *titulo_submenu) {
+  limpar_tela_terminal();
+  int escolha_usuario;
 
-    int input;
+  printf("=== %s ===\n\n", titulo_submenu);
+  printf("1. Gerenciar Clientes\n");
+  printf("2. Gerenciar Plataformas\n");
+  printf("3. Voltar ao Menu Principal\n\n");
+  printf("Digite sua opcao: ");
 
-    //escolha principal
-    input = menu_principal();
-    limpar_terminal();
-    
-    //forcando o usuario a escolher uma opcao valida
-    while (input <= 0 || input > 5){
-      limpar_terminal();
-      printf("Por favor insira uma opcao valida!\n");
-      input = menu_principal();
+  scanf("%d", &escolha_usuario);
+  getchar(); // Consumir quebra de linha
+  return escolha_usuario;
+}
+
+int main() {
+  int opcao_menu_principal;
+
+  while (1) {
+    limpar_tela_terminal();
+    printf("SISTEMA DE GESTAO DE ASSINATURAS\n\n");
+    printf("1. Realizar Cadastro\n");
+    printf("2. Consultar Dados\n");
+    printf("3. Alterar Informacoes\n");
+    printf("4. Excluir Dados\n");
+    printf("5. Sair do Sistema\n\n");
+    printf("Escolha uma opcao: ");
+
+    scanf("%d", &opcao_menu_principal);
+    getchar(); // Consumir quebra de linha
+
+    if (opcao_menu_principal == 5) {
+      printf("Encerrando sistema...\n");
+      break;
     }
 
-    limpar_terminal();
+    if (opcao_menu_principal < 1 || opcao_menu_principal > 5) {
+      printf("Opcao invalida! Tente novamente.");
+      getchar();
+      continue;
+    }
 
-    while(1){
+    // --- Navegação ---
 
-      if(input == 1){
-        limpar_terminal();
-        input = realizar_cadastro();
-        if(input == 1){
-          limpar_terminal();
-          cadastrar_usuario();
-          input = 1;
-        }else if(input == 2){
-          limpar_terminal();
-          cadastrar_plataforma();
-          input = 1;
-        }
+    if (opcao_menu_principal == 1) { // CADASTRO
+      int escolha = exibir_submenu_e_obter_escolha("MENU DE CADASTRO");
 
-        //forcando o usuario a escolher uma opcao valida 
-        while (input <= 0 || input > 4){
-          limpar_terminal();
-          printf("Por favor insira uma opcao valida!\n");
-          input = realizar_cadastro();
-        }
-        if(input == 4){
-          break;
-        }
+      if (escolha == 1) {
+        realizar_cadastro_cliente();
+      } else if (escolha == 2) {
+        realizar_cadastro_plataforma();
+      }
+    } else { // CONSULTAR (2), ALTERAR (3), EXCLUIR (4)
+      char *titulos_menus[] = { "MENU DE CONSULTA", "MENU DE ALTERACAO", "MENU DE EXCLUSAO" };
 
-        }else if(input == 2){
-        limpar_terminal();
-        input = realizar_consulta();
-        if(input == 1){
-          limpar_terminal();
-          consultar_usuario();
-          getchar();
-          limpar_terminal();
-          input = 2;
-        }else if(input == 2){
-          limpar_terminal();
-          consultar_plataforma();
-          limpar_terminal();
-          input = 2;
-        }
+      // Reutiliza o menu
+      int escolha = exibir_submenu_e_obter_escolha(titulos_menus[opcao_menu_principal - 2]);
 
-        //forcando o usuario a escolher uma opcao valida
-        while (input <= 0 || input > 4){
-          limpar_terminal();
-          printf("Por favor insira uma opcao valida!\n");
-          input = realizar_consulta(); 
-        }
-        
-        if(input == 4){
-          break;
-        }
+      // Define o tipo de operação baseado no menu principal (2->1, 3->2, 4->3)
+      int tipo_operacao = opcao_menu_principal - 1;
 
-      }else if(input == 3){
-        limpar_terminal();
-        input = realizar_alteracao();
-        if(input == 1){
-          limpar_terminal();
-          alterar_usuario();
-          getchar();
-          limpar_terminal();
-          input = 3;
-        }else if(input == 2){
-          limpar_terminal();
-          alterar_plataforma();
-          getchar();
-          limpar_terminal();
-          input = 3;
-        }
-
-        //forcando o usuario a escolher uma opcao valida
-        while (input <= 0 || input > 4) {
-          limpar_terminal();
-          printf("Por favor insira uma opcao valida!\n");
-          input = realizar_alteracao(); 
-
-        }
-        if(input == 4){
-          break;
-        }
-
-      }else if(input == 4){
-        limpar_terminal();
-        input = realizar_exclusao();
-        if(input == 1){
-          limpar_terminal();
-          excluir_usuario();
-          input = 4;
-        }else if(input == 2){
-          limpar_terminal();
-          excluir_plataforma();
-          input = 4;
-        }
-
-        //forcando o usuario a escolher uma opcao valida
-        while (input <= 0 || input > 4) {
-          limpar_terminal();
-          printf("Por favor insira uma opcao valida!\n");
-          input = realizar_exclusao();
-        }
-        if(input == 4){
-          break;
-        }
-
-      }else if(input == 5){
-        return 0;
+      if (escolha == 1) {
+        gerenciar_clientes(tipo_operacao);
+      } else if (escolha == 2) {
+        gerenciar_plataformas(tipo_operacao);
       }
     }
   }
-
   return 0;
-
 }
