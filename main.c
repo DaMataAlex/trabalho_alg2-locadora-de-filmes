@@ -66,7 +66,7 @@ void ler_entrada_usuario(char *buffer_destino, int tamanho_buffer, const char *m
   buffer_destino[strcspn(buffer_destino, "\n")] = '\0';
 }
 
-void limpar_telefone(const char *entrada, char *saida) {
+void limpar_numero(const char *entrada, char *saida) {
   char *p = saida;
 
   for (int i = 0; *(entrada + i) != '\0'; i++) {
@@ -82,10 +82,14 @@ void limpar_telefone(const char *entrada, char *saida) {
 
 // algoritmo de validação de CPF retirado de: https://www.macoratti.net/alg_cpf.htm
 int validar_formato_cpf(const char *cpf) {
-  if (strlen(cpf) != 11) return 0;
+  char cpf_limpo[12];
+
+  limpar_numero(cpf, cpf_limpo);
+
+  if (strlen(cpf_limpo) != 11) return 0;
 
   // crio uma copia do ponteiro da string para poder iterar sobre ela sem perder a ref para a string original
-  char *p = cpf;
+  char *p = cpf_limpo;
 
   // isso aqui vai ver se o cpf não é 111.111.111-11
   int iguais = 1;
@@ -103,7 +107,7 @@ int validar_formato_cpf(const char *cpf) {
 
   soma = 0;
   peso = 10;
-  p = cpf;
+  p = cpf_limpo;
 
   for (int i = 0; i < 9; i++) {
 
@@ -119,7 +123,7 @@ int validar_formato_cpf(const char *cpf) {
 
   soma = 0;
   peso = 11;
-  p = cpf;
+  p = cpf_limpo;
 
   for (int i = 0; i < 10; i++) {
     soma += (*p - '0') * peso;
@@ -131,9 +135,9 @@ int validar_formato_cpf(const char *cpf) {
   if (resto < 2) digito2 = 0;
   else digito2 = 11 - resto;
 
-  // escrever assim é o mesmo que escrever cpf[9] e cpf[10]
-  if ((*(cpf + 9) - '0') != digito1) return 0;
-  if ((*(cpf + 10) - '0') != digito2) return 0;
+  // escrever assim é o mesmo que escrever cpf_limpo[9] e cpf_limpo[10]
+  if ((*(cpf_limpo + 9) - '0') != digito1) return 0;
+  if ((*(cpf_limpo + 10) - '0') != digito2) return 0;
 
   return 1;
 }
@@ -143,7 +147,7 @@ int validar_formato_telefone(const char *telefone) {
   char numero_formatado[12];
   char tipo; // f = fixo, m = móvel
 
-  limpar_telefone(telefone, numero_formatado);
+  limpar_numero(telefone, numero_formatado);
 
   if (strlen(numero_formatado) == 10) tipo = 'f';
   else if (strlen(numero_formatado) == 11) tipo = 'm';
@@ -239,9 +243,9 @@ void realizar_cadastro_cliente() {
 
   ler_entrada_usuario(novo_cliente->nome_completo, TAMANHO_STRING_PADRAO, "Nome Completo: ");
 
-  ler_e_validar_entrada(novo_cliente->cpf, 20, "CPF (000.000.000-00): ", "Formato invalido!", validar_formato_cpf);
+  ler_e_validar_entrada(novo_cliente->cpf, 20, "CPF (000.000.000-00): ", "CPF Inválido!", validar_formato_cpf);
 
-  ler_e_validar_entrada(novo_cliente->telefone, 20, "Telefone (00) 00000-0000: ", "Formato invalido!", validar_formato_telefone);
+  ler_e_validar_entrada(novo_cliente->telefone, 20, "Telefone (00) 00000-0000: ", "Número Inválido!", validar_formato_telefone);
 
   ler_e_validar_entrada(novo_cliente->email, TAMANHO_STRING_PADRAO, "E-mail: ", "E-mail invalido!", validar_email);
 
