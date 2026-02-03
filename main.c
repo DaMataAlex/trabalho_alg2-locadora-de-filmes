@@ -161,8 +161,7 @@ void realizar_cadastro_plataforma() {
     getchar();
     return;
   }
-  return -1;
-}
+  return;
 
   Plataforma *nova_plataforma = &lista_de_plataformas[total_plataformas_cadastradas];
 
@@ -268,6 +267,7 @@ void gerenciar_clientes(int tipo_operacao) {
     printf("\nCliente excluido!\nENTER para continuar.");
     getchar();
   }
+}
 
 // ==========================================================
 // MÓDULO ESPECÍFICO: GERENCIAMENTO DE PLATAFORMAS
